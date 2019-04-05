@@ -21,7 +21,7 @@ class Level(Screen):
         Sets up Camera. (not yet!)
 
         Args:
-            blocks: one dimensional array of blocks for the level,
+            blocks: set of blocks for the level,
                     all positioned correctly
             **kwargs: anything that needs to be passed into
                       base class Screen
@@ -82,8 +82,9 @@ class Block(FloatLayout):
         super().__init__(**kwargs)
 
         # Creating a collider and RigidBody2D for each block
-        collider = Rectanglef(position = Vector2f())
-        self.rb = RigidBody2D()
+        collider = Rectanglef(position = Vector2f(self.pos), size = \
+                                Vector2f(self.size))
+        self.rb = RigidBody2D(collider)
 
         # Disabling size hint
         self.size_hint_x = None
@@ -128,49 +129,17 @@ def load_levels():
     for level in data:
         # Retreiving the level name
         level_name = level["name"]
-        # Retreiving level data
-        level_data = level["data"]
-        # Changing data to be formatted in [x][y] instead of [y][x]
-        level_data = load_blocks(level_data)
-        # Finally, positioning the blocks to their correct locations
-        level_data = position_blocks(level_data)
+        # Retreiving temporary level data
+        _level_data = level["data"]
+        # Converting the format of the block array into a flat array, and
+        # positioning each block into the correct location.
+        level_data = load_blocks(_level_data)
         # Appending to result a new level with
         # level_name and the correct data
         result.append(Level(level_data, name=level_name))
 
     return result
 
-def position_blocks(block_arr: List):
-    """Positions the blocks correctly.
-
-    It will take the blocks position in the array,
-    and multiply it by Block.size.
-
-    Args:
-        block_arr: a two dimensional list of blocks [x][y]
-
-    Returns:
-        A one dimensional array of blocks positioned correctally
-    """
-
-    # Initalize the result to an empty list
-    result = list()
-
-    # Looping through all of the blocks on the x and y axes
-    for x in range(len(block_arr)):
-        for y in range(len(block_arr[0])):
-            # Making sure that it is not an air block
-            if block_arr[x][y] is not None:
-                # Setting the block position by multiplying
-                # the current x and y positions by the
-                # block size.
-                block_arr[x][y].x = x*Block.block_size[0]
-                block_arr[x][y].y = y*Block.block_size[1]
-                # Appending the block with the correct position to result
-                result.append(block_arr[x][y])
-
-    return result
-# TODO: Take out (x,y) formula and replace with flat array, since that is now what Level.__init__ takes in
 def load_blocks(block_data: List):
     """Converts [y][x] blocks to [x][y].
 
@@ -183,30 +152,37 @@ def load_blocks(block_data: List):
     Returns:
         2 dimensional array representing blocks arranged in x,y from [0,0]
     """
+    def position_block(x_pos, y_pos):
+        """Positions a block according to it's x and y positions in the array.
 
-    # Setting the width and height to the dimensions of the array
-    width = len(block_data[0])
-    height = len(block_data)
+        Returns:
+            A tuple representing the blocks (x,y) position.
+        """
+        # Multiply the x/y positions by the width/height of a block
+        x_pos = x_pos*Block.block_size[0]
+        y_pos = y_pos*Block.block_size[1]
+        return x_pos, y_pos
+    # First, reverse the list since it comes in the incorrect order.
+    # (only the first dimension)
+    block_data = list(reversed(block_data))
 
-    # Initalizing the 2D result array to the [width][height]
-    result = [[None for y in range(height)] for x in range(width)]
+    # Initalizing the one dimensional array (set)
+    result = set()
 
-    # Looping through the dictionary
+    # Loop through the 2D list:
     for y in range(len(block_data)):
         for x in range(len(block_data[0])):
-            # Setting the current [x][y] value of result to
-            # the [y][x] value of block_data
-            result[x][y] = block_data[y][x]
-
-    # Looping through all of the data
-    # and converting it to blocks
-    for x in range(len(result)):
-        for y in range(len(result[0])):
-            # Making sure that it is not an air block
-            if result[x][y] != "None":
-                result[x][y] = Block(result[x][y])
-            else:
-                # Set result (x,y) to python None instead of "None"
-                result[x][y] = None
-
+            # Four steps:
+            #   1. Get text at current position in list
+            #   2. Get correct position, in kivy coordinates.
+            #   3. Create a `Block` with the correct position
+            #   4. Add the block to result.
+            text = block_data[y][x]
+            # If "None", don't put a block there! (skip)
+            if text == "None":
+                continue
+            # Get the block position
+            block_pos = position_block(x, y)
+            block = Block(text, pos=block_pos)
+            result.add(block)
     return result

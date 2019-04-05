@@ -31,10 +31,24 @@ class Vector2f(object):
             value: a float, representing the y value of the vector."""
         self._y = float(value)
 
-    def __init__(self, x=0, y=0):
-        """"Initalizes x and y positions."""
+    def __init__(self, convert_from=None, *, x=0, y=0):
+        """"Initalizes x and y positions.
+
+        Args:
+            convert_from: a tuple, list, or array of length two representing a \
+                            vector2.
+            x: a float representing the x-coordinate of the vector.
+            y: a float representing the y-coordinate of the vector.
+        """
         self.x = x
         self.y = y
+
+        # If `convert_from` is None then do nothing with it
+        if convert_from is None:
+            return
+        # Setting the x and y to their positions in the list/tuple/array
+        self.x = convert_from[0]
+        self.y = convert_from[1]
 
     ########## OPERATORS ##########
     def __add__(self, other):
@@ -181,7 +195,6 @@ class Vector2f(object):
         """
         # Solve `a^2+b^2=c^2` to c = sqrt(a^2+b^2)
         return math.sqrt((self.x * self.x) + (self.y * self.y))
-    ########## /OPERATORS/ ##########
 
 class Shapef(object):
     """Base class for all shapes.
@@ -196,7 +209,7 @@ class Shapef(object):
     @position.setter
     def position(self, value):
         """Sets the shape's position."""
-        self._position = float(value)
+        self._position = value
 
 class Rectanglef(Shapef):
     """Used to represent a 2D rectangle."""
@@ -275,7 +288,7 @@ class Rectanglef(Shapef):
             value: a Vector2f representing the size (width/height) of the
                     rectangle.
         """
-        self._size = float(value)
+        self._size = value
 
 class Circlef(Shapef):
     """Used to represent a 2D circle.
@@ -343,6 +356,13 @@ class Circlef(Shapef):
 class RigidBody2D():
     """Better movement and collision."""
 
+    @property
+    def velocity(self):
+        return self._velocity
+    @velocity.setter
+    def velocity(self, value):
+        self._velocity = value
+
     # A set of all registered rigidbodies
     rigidbodies = set()
 
@@ -357,7 +377,11 @@ class RigidBody2D():
         self._collider = collide_shape
 
         # Adds self to set 'rigidbodies'
-        RigidBody2D.add(self)
+        RigidBody2D.rigidbodies.add(self)
+
+    def Update(dt: float):
+        self.collider.position += self.velocity
+
 
 def collide_shapes(collider_shape, *shapes):
     """Checks if the first shape collides with any others.
@@ -472,7 +496,7 @@ def collide_swept(collider_shape, collider_velocity, *shapes):
     """
     # TODO: Implement swept circle colliders, currently only have AABB
 
-    def get_times(shape):
+    def get_time(shape):
         """Gets the entry and exit time for `collider_shape` colliding with\
         shape.
 
@@ -483,12 +507,84 @@ def collide_swept(collider_shape, collider_velocity, *shapes):
         # Getting the distance between `collider_shape` and shape
         entry_distance = Vector2f()
         exit_distance = Vector2f()
+        ### X ###
         if collider_velocity.x > 0:
             # If `collider_shape` is traveling forward on the x-axis
             entry_distance.x = shape.position.x - (collider_shape.position.x + \
-                                                    collider_shape.size.x);
+                                                    collider_shape.size.x)
             exit_distance.x = (shape.position.x + shape.size.x) - \
-                                collider_shape.position.x;
-    pass
+                                collider_shape.position.x
+        else:
+            # If `collider_shape` is traveling backwards on the x-axis,
+            # do the opposite.
+            entry_distance.x = (shape.position.x + shape.size.x) - \
+                                collider_shape.position.x
+            exit_distance.x = shape.position.x - (collider_shape.position.x + \
+                                                    collider_shape.size.x)
+        ### /X/ ###
+        ### Y ###
+        # Same as x
+        if collider_velocity.y > 0:
+            # If `collider_shape` is traveling forward on the y-ayis
+            entry_distance.y = shape.position.y - (collider_shape.position.y + \
+                                                    collider_shape.size.y)
+            eyit_distance.y = (shape.position.y + shape.size.y) - \
+                                collider_shape.position.y
+        else:
+            # If `collider_shape` is traveling backwards on the y-ayis,
+            # do the opposite.
+            entry_distance.y = (shape.position.y + shape.size.y) - \
+                                collider_shape.position.y
+            eyit_distance.y = shape.position.y - (collider_shape.position.y + \
+                                                    collider_shape.size.y)
+        ### /Y/ ###
+        # The actual entry and exit times, the x and y a floating point number 0
+        # to 1 relative to how much of the velocity can be traveled.
+
+        # Initalize as negative and positive infinity
+        entry = Vector2f(x=float("-inf"), y=float("-inf"))
+        exit = Vector2f(x=float("inf"), y=float("inf"))
+
+        # No dividing by zero!
+        if collider_velocity.x is not 0:
+            # Divide distance by speed to get decimal representing how much
+            # of velocity should be travled.
+            entry.x = entry_distance.x / collider_velocity.x
+            exit.x = exit_distance.x / collider_velocity.x
+        if collider_velocity.y is not 0:
+            # Divide distance by speed to get decimal representing how much
+            # of velocity should be travled.
+            entry.y = entry_distance.y / collider_velocity.x
+            exit.y = exit_distance.y / collider_velocity.x
+
+        # Time (0 to 1) will always be greatest x or y value
+        entryTime = max(entry.x, entry.y)
+        exitTime = min(exit.x, exit.y)
+
+        # No Collision!
+        # Conditions for collision to happen:
+        #   1. Entry must come before exit
+        #   2. Entry-time and exit-time must be between 1 and 0
+        if (entryTime > exitTime) or (entry.x < 0 and entry.y < 0) or \
+            (entry.x > 1) or (entry.x > 1):
+            # `return 1`: full velocity can be made without colliding into
+            # anything.
+            return 1
+        else:
+            # `return entryTime`: number between one and 0 times velocity is how
+            # far `shape` can travel this frame
+            return entryTime
+
+    # Want the earliest point that `collider_shape` collides with any one
+    # of `*shapes`. One means that the shape `collider_shape` should travel
+    # it's full velocity `collider_velocity`, and zero means that
+    # `collider_shape` should not move at all.
+    minimum_collision_time = float(1.0)
+
+    # Loop through the list of shapes
+    for shape in shapes:
+        collideTime = getTime(shape)
+        if collideTime < minimum_collision_time:
+            minimum_collision_time = collideTime
 
 # TODO: Make it so that this is more friendly with the kivy enviornment.
