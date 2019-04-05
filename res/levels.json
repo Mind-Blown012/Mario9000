@@ -2,12 +2,12 @@
   {
     "name": "Level 1",
     "data": [
-      ["None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None"],
-      ["None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None"],
-      ["None", "None", "None", "None", "None", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt"],
-      ["None", "None", "None", "None", "None", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt"],
-      ["dirt", "stone", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt"],
-      ["dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt"]
+      ["None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None"],
+      ["None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None"],
+      ["None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt"],
+      ["None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt"],
+      ["None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "dirt", "stone", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt"],
+      ["None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt"]
     ]
   }
 ]

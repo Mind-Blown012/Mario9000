@@ -357,6 +357,15 @@ class RigidBody2D():
     """Better movement and collision."""
 
     @property
+    def position(self):
+        """Returns this rigidbody's collider's position."""
+        return self._collider.position
+    @property
+    def size(self):
+        """Returns this rigidbody's collider's size."""
+        return self._collider.size
+
+    @property
     def velocity(self):
         return self._velocity
     @velocity.setter
@@ -374,14 +383,16 @@ class RigidBody2D():
                             collision area of the object.
         """
 
+        self._velocity = Vector2f()
         self._collider = collide_shape
 
         # Adds self to set 'rigidbodies'
         RigidBody2D.rigidbodies.add(self)
 
-    def Update(dt: float):
-        self.collider.position += self.velocity
-
+    def Update(self, dt: float):
+        # Multiplying the velocity by how long it takes to collide
+        self.velocity *= collide_swept(self._collider, self.velocity, RigidBody2D.rigidbodies)
+        self._collider.position += self.velocity
 
 def collide_shapes(collider_shape, *shapes):
     """Checks if the first shape collides with any others.
@@ -476,7 +487,7 @@ def collide_shapes(collider_shape, *shapes):
     for shape in shapes:
         pass
 
-def collide_swept(collider_shape, collider_velocity, *shapes):
+def collide_swept(collider_shape, collider_velocity, shapes):
     """Calculates sweeping collisions for the given object(s) and velocity.
 
     Takes in the current velocity of the collide shape and checks if it will
@@ -528,14 +539,14 @@ def collide_swept(collider_shape, collider_velocity, *shapes):
             # If `collider_shape` is traveling forward on the y-ayis
             entry_distance.y = shape.position.y - (collider_shape.position.y + \
                                                     collider_shape.size.y)
-            eyit_distance.y = (shape.position.y + shape.size.y) - \
+            exit_distance.y = (shape.position.y + shape.size.y) - \
                                 collider_shape.position.y
         else:
             # If `collider_shape` is traveling backwards on the y-ayis,
             # do the opposite.
             entry_distance.y = (shape.position.y + shape.size.y) - \
                                 collider_shape.position.y
-            eyit_distance.y = shape.position.y - (collider_shape.position.y + \
+            exit_distance.y = shape.position.y - (collider_shape.position.y + \
                                                     collider_shape.size.y)
         ### /Y/ ###
         # The actual entry and exit times, the x and y a floating point number 0
@@ -546,16 +557,16 @@ def collide_swept(collider_shape, collider_velocity, *shapes):
         exit = Vector2f(x=float("inf"), y=float("inf"))
 
         # No dividing by zero!
-        if collider_velocity.x is not 0:
+        if collider_velocity.x != 0:
             # Divide distance by speed to get decimal representing how much
             # of velocity should be travled.
             entry.x = entry_distance.x / collider_velocity.x
             exit.x = exit_distance.x / collider_velocity.x
-        if collider_velocity.y is not 0:
+        if collider_velocity.y != 0:
             # Divide distance by speed to get decimal representing how much
             # of velocity should be travled.
-            entry.y = entry_distance.y / collider_velocity.x
-            exit.y = exit_distance.y / collider_velocity.x
+            entry.y = entry_distance.y / collider_velocity.y
+            exit.y = exit_distance.y / collider_velocity.y
 
         # Time (0 to 1) will always be greatest x or y value
         entryTime = max(entry.x, entry.y)
@@ -566,11 +577,19 @@ def collide_swept(collider_shape, collider_velocity, *shapes):
         #   1. Entry must come before exit
         #   2. Entry-time and exit-time must be between 1 and 0
         if (entryTime > exitTime) or (entry.x < 0 and entry.y < 0) or \
-            (entry.x > 1) or (entry.x > 1):
+            (entry.x > 1) or (entry.y > 1):
             # `return 1`: full velocity can be made without colliding into
             # anything.
             return 1
         else:
+            print("Distance: "+str([tuple(entry_distance),tuple(exit_distance)]))
+            print("Entries/Exits: "+str([tuple(entry),tuple(exit)]))
+            print("Times: "+str([entryTime, exitTime]))
+            print("Velocity: "+str(tuple(collider_velocity)))
+            print("Shapes:\n\tCollider:\n\t\tPosition: "+str(tuple(collider_shape.position))+
+                    "\n\t\tSize: "+str(tuple(collider_shape.size))+"\n\tBlock: "+
+                    "\n\t\tPosition: "+str(tuple(shape.position))+"\n\t\tSize: "+
+                    str(tuple(shape.size)))
             # `return entryTime`: number between one and 0 times velocity is how
             # far `shape` can travel this frame
             return entryTime
@@ -583,8 +602,15 @@ def collide_swept(collider_shape, collider_velocity, *shapes):
 
     # Loop through the list of shapes
     for shape in shapes:
-        collideTime = getTime(shape)
+        collideTime = get_time(shape)
+        # Only set `minimum_collision_time` if this is the smallest time so far
+        if collideTime == 0.0:
+            print(collideTime)
+            print(tuple(shape.position))
         if collideTime < minimum_collision_time:
             minimum_collision_time = collideTime
 
+    return minimum_collision_time
+
 # TODO: Make it so that this is more friendly with the kivy enviornment.
+# TODO: Type checking with properties

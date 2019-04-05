@@ -43,7 +43,7 @@ class Level(Screen):
                 self.blocks.append(block)
 
         # Creating a player and adding it to root_wid
-        self.player = Player()
+        self.player = Player((0,120)) # HACK: Testing player's position at 61
         root_wid.add_widget(self.player)
 
         self.add_widget(root_wid)
